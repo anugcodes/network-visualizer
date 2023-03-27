@@ -1,7 +1,11 @@
 
 <template>
-    <div class="graph-container">
-        graph goes here.
+    <div class="graph-container">        
+        <p>plotting the graph for asn: 
+            <span>{{ asNumber }}</span>
+            and for date: 
+            <span>{{ timestamp }}</span>
+        </p>
         <div id="graph-holder">
             actual graph is here.
         </div>
@@ -9,19 +13,18 @@
 </template>
 
 <script>
-import Sigma from "sigma";
-import Graph from "graphology";
+// import Sigma from "sigma";
+// import Graph from "graphology";
 export default {
     name: 'AsHegeGraph',
     props: {
         asNumber: { required: true, type: String },
         timestamp: {required: true, type: String },
-        timestamp__lte: {required: false, type: String },
-        timestamp__gte: {required: false, type: String },
     },
     data() {
         return {
-
+            asn:this.asNumber,
+            date : this.timestamp,         
         }
     },
     methods: {},
@@ -31,11 +34,13 @@ export default {
 
 <style scoped>
 .graph-container {
-    width: 100%;
-    margin: .5rem;
-    padding: .5rem;
-    background-color: honeydew;
-    opacity: .8;
+    background-color: beige;    
     color: black;
+    margin-top: .5rem;
+    padding: .25rem;
+}
+span{
+    font-style: italic;
+    font-weight: bold;
 }
 </style>
