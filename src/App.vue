@@ -37,6 +37,9 @@ import Graph from "graphology";
 import { circular } from 'graphology-layout';
 
 const HEGE_BASE_URL = "https://ihr.iijlab.net/ihr/api/hegemony";
+const BGPLAY_BASE_URL = "https://stat.ripe.net/data/bgplay/data.json";
+const BGPSTATE_BASE_URL = "https://stat.ripe.net/data/bgp-state/data.json";
+
 
 export default {
   name: "App",
@@ -46,63 +49,75 @@ export default {
     return {
       date: new Date().toISOString().split('T')[0],
       asNumber: "",
-      hegemony_data: [],
+      hegemonyValues: [],
+      bgpstateValues: [],
     }
   },
   methods: {
     async handleSubmit() {
       console.log("values from form: ", this.asNumber, " --- ", this.date);
       console.log("calling api using axios...");
-      await this.loadDate();
+      await this.loadData();
       this.plotGraph();
     },
 
     // call hegemony api to load hegemony data.
-    async loadDate() {
-      if (this.asNumber === '0') return;
+    async loadData() {
+      if (this.asNumber === '0' || this.asNumber === '') return;
       let timestamp = new Date(this.date).toISOString();
       console.log(timestamp);
-      const res = await axios.get(HEGE_BASE_URL, {
+
+      // for hegemony values.
+      const hege_res = await axios.get(HEGE_BASE_URL, {
         params: {
           originasn: this.asNumber,
           timebin: timestamp,
         }
       })
-      this.hegemony_data = res.data.results;
+      this.hegemonyValues = hege_res.data.results;
+
+      // for bgp values using bgp state api
+      const bgp_res = await axios.get(BGPSTATE_BASE_URL, {
+        params: {
+          resource: this.asNumber,
+          timestamp: timestamp,
+        }
+      })
+      this.bgpstateValues = bgp_res.data.data.bgp_state;
     },
-    scaleNodeSize(hege,nodeminSize,nodemaxSize) {
-      const hegeValue = Math.floor(hege*100);
-      if(hegeValue < nodeminSize)return nodeminSize;
-      else if( hegeValue > nodemaxSize) return nodemaxSize;
-      else return Math.floor(hege*100);
+    scaleNodeSize(hege, nodeminSize, nodemaxSize) {
+      const hegeValue = Math.floor(hege * 100);
+      if (hegeValue < nodeminSize) return nodeminSize;
+      else if (hegeValue > nodemaxSize) return nodemaxSize;
+      else return Math.floor(hege * 100);
     },
 
     plotGraph() {
+      const container = this.$refs.graphHolder;
       const graph = new Graph({
         multi: true,
         allowSelfLoops: true,
         type: "directed"
       });
-      const container = this.$refs.graphHolder;
       const rendrer = new Sigma(graph, container, {
         settings: {
           minArrowSize: 10,
         }
-      });
+      });      
 
-      this.hegemony_data.forEach(ele => {
+      this.hegemonyValues.forEach(ele => {
         if (ele.originasn !== ele.asn) {
           graph.addNode(ele.asn, {
-            size: this.scaleNodeSize(ele.hege,10,25), label: ele.asn, color: 'red',
+            size: this.scaleNodeSize(ele.hege, 10, 25), label: ele.asn, color: 'red',
           })
         }
         else {
           graph.addNode(ele.asn, {
-            size: this.scaleNodeSize(ele.hege,10,25), label: ele.asn, color: 'green',
+            size: this.scaleNodeSize(ele.hege, 10, 25), label: ele.asn, color: 'green',
           })
         }
       }),
-        this.hegemony_data.forEach(ele => {
+        this.hegemonyValues.forEach(ele => {
           graph.addEdge(ele.originasn, ele.asn, {
             type: 'arrow',
             size: 5,
