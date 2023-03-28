@@ -56,17 +56,16 @@ export default {
   methods: {
     async handleSubmit() {
       console.log("values from form: ", this.asNumber, " --- ", this.date);
+      if (this.asNumber === '0' || this.asNumber === '') return;
       console.log("calling api using axios...");
-      await this.loadData();
+      await this.loadHegemonyData();
+      await this.loadBgpData();
       this.plotGraph();
     },
-
-    // call hegemony api to load hegemony data.
-    async loadData() {
-      if (this.asNumber === '0' || this.asNumber === '') return;
+    
+    async loadHegemonyData() {     
       let timestamp = new Date(this.date).toISOString();
       console.log(timestamp);
-
       // for hegemony values.
       const hege_res = await axios.get(HEGE_BASE_URL, {
         params: {
@@ -75,7 +74,9 @@ export default {
         }
       })
       this.hegemonyValues = hege_res.data.results;
-
+    },
+    async loadBgpData() {
+      let timestamp = new Date(this.date).toISOString();
       // for bgp values using bgp state api
       const bgp_res = await axios.get(BGPSTATE_BASE_URL, {
         params: {
@@ -103,7 +104,7 @@ export default {
         settings: {
           minArrowSize: 10,
         }
-      });      
+      });
 
       this.hegemonyValues.forEach(ele => {
         if (ele.originasn !== ele.asn) {
