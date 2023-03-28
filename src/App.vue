@@ -70,6 +70,12 @@ export default {
       })
       this.hegemony_data = res.data.results;
     },
+    scaleNodeSize(hege,nodeminSize,nodemaxSize) {
+      const hegeValue = Math.floor(hege*100);
+      if(hegeValue < nodeminSize)return nodeminSize;
+      else if( hegeValue > nodemaxSize) return nodemaxSize;
+      else return Math.floor(hege*100);
+    },
 
     plotGraph() {
       const graph = new Graph({
@@ -87,12 +93,12 @@ export default {
       this.hegemony_data.forEach(ele => {
         if (ele.originasn !== ele.asn) {
           graph.addNode(ele.asn, {
-            size: Math.floor(ele.hege * 100), label: ele.asn, color: 'red',
+            size: this.scaleNodeSize(ele.hege,10,25), label: ele.asn, color: 'red',
           })
         }
         else {
           graph.addNode(ele.asn, {
-            size: Math.floor(ele.hege * 50), label: ele.asn, color: 'green',
+            size: this.scaleNodeSize(ele.hege,10,25), label: ele.asn, color: 'green',
           })
         }
       }),
@@ -104,7 +110,6 @@ export default {
         })
       circular.assign(graph);
       rendrer.refresh();
-      console.log(rendrer);
     },
   },
 };
