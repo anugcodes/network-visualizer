@@ -34,7 +34,7 @@
 import axios from 'axios';
 import Sigma from "sigma";
 import Graph from "graphology";
-import { circular } from 'graphology-layout';
+import { circular, random } from 'graphology-layout';
 
 const HEGE_BASE_URL = "https://ihr.iijlab.net/ihr/api/hegemony";
 const BGPLAY_BASE_URL = "https://stat.ripe.net/data/bgplay/data.json";
@@ -49,7 +49,8 @@ export default {
     return {
       date: new Date().toISOString().split('T')[0],
       asNumber: "",
-      hegemonyValues: [],
+      graph: Graph,
+      hegemonyValues: {},
       bgpstateValues: [],
     }
   },
@@ -62,18 +63,18 @@ export default {
       await this.loadBgpData();
       this.plotGraph();
     },
-    
-    async loadHegemonyData() {     
+    async loadHegemonyData() {
       let timestamp = new Date(this.date).toISOString();
-      console.log(timestamp);
-      // for hegemony values.
       const hege_res = await axios.get(HEGE_BASE_URL, {
         params: {
           originasn: this.asNumber,
           timebin: timestamp,
         }
       })
-      this.hegemonyValues = hege_res.data.results;
+      hege_res.data.results.forEach(result => {
+        this.hegemonyValues[result.asn] = result.hege;
+      })
+      console.log(this.hegemonyValues);
     },
     async loadBgpData() {
       let timestamp = new Date(this.date).toISOString();
@@ -93,38 +94,49 @@ export default {
       else return Math.floor(hege * 100);
     },
 
+
+
     plotGraph() {
-      const container = this.$refs.graphHolder;
-      const graph = new Graph({
+
+      let graphValues = {};
+
+      this.bgpstateValues.forEach(route => {
+        let prev_asn = "Internet";
+        route.path.forEach(asn => {
+          if (asn in this.hegemonyValues) {
+            if (prev_asn != asn) {
+              if (!(prev_asn in graphValues)) {
+                graphValues[prev_asn] = {};
+              }
+              graphValues[prev_asn][asn] += 1;
+              // Keep track of unmeasured hegemony
+              // consumedHege[asn][prev_asn] = this.hegemonyValues[prev_asn];
+            }
+            prev_asn = asn;
+          }
+          else {
+            prev_asn = 'Internet';
+          }
+        })
+      })
+      console.log(graphValues);
+      
+
+      this.graph = new Graph({
         multi: true,
         allowSelfLoops: true,
         type: "directed"
       });
-      const rendrer = new Sigma(graph, container, {
+      const rendrer = new Sigma(this.graph, container, {
         settings: {
           minArrowSize: 10,
         }
       });
-
-      this.hegemonyValues.forEach(ele => {
-        if (ele.originasn !== ele.asn) {
-          graph.addNode(ele.asn, {
-            size: this.scaleNodeSize(ele.hege, 10, 25), label: ele.asn, color: 'red',
-          })
-        }
-        else {
-          graph.addNode(ele.asn, {
-            size: this.scaleNodeSize(ele.hege, 10, 25), label: ele.asn, color: 'green',
-          })
-        }
-      }),
-        this.hegemonyValues.forEach(ele => {
-          graph.addEdge(ele.originasn, ele.asn, {
-            type: 'arrow',
-            size: 5,
-          });
-        })
-      circular.assign(graph);
+      // adding the main node Internet.
+      // this.graph.addNode('Internet', {
+      //   size: 15, label: 'Internet',color:'green',
+      // })
+      random.assign(this.graph);
       rendrer.refresh();
     },
   },
