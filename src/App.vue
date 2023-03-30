@@ -35,6 +35,7 @@ import axios from 'axios';
 import Sigma from "sigma";
 import Graph from "graphology";
 import { circular, random } from 'graphology-layout';
+import forceLayout from 'graphology-layout-force';
 
 const HEGE_BASE_URL = "https://ihr.iijlab.net/ihr/api/hegemony";
 const BGPLAY_BASE_URL = "https://stat.ripe.net/data/bgplay/data.json";
@@ -72,20 +73,20 @@ export default {
         }
       })
       hege_res.data.results.forEach(result => {
-        this.hegemonyValues[result.asn] = result.hege;
+        this.hegemonyValues[result.asn] = { asn: result.asn, name: result.asn_name, hege: result.hege };
       })
       console.log(this.hegemonyValues);
     },
     async loadBgpData() {
       let timestamp = new Date(this.date).toISOString();
       // for bgp values using bgp state api
-      const bgp_res = await axios.get(BGPSTATE_BASE_URL, {
+      const bgp_res = await axios.get(BGPLAY_BASE_URL, {
         params: {
           resource: this.asNumber,
-          timestamp: timestamp,
+          starttime: timestamp,
         }
       })
-      this.bgpstateValues = bgp_res.data.data.bgp_state;
+      this.bgpstateValues = bgp_res.data.data.initial_state;
     },
     scaleNodeSize(hege, nodeminSize, nodemaxSize) {
       const hegeValue = Math.floor(hege * 100);
@@ -94,11 +95,24 @@ export default {
       else return Math.floor(hege * 100);
     },
 
-
+    newCounter() {
+      let handler = {
+        get: function (target, name) {
+          return target.hasOwnProperty(name) ? target[name] : 0;
+        }
+      };
+      let emptyObj = {};
+      return new Proxy(emptyObj, handler);
+    },
 
     plotGraph() {
 
       let graphValues = {};
+      let trace = {
+        nodes: [],
+        edges: [],
+      }
+
 
       this.bgpstateValues.forEach(route => {
         let prev_asn = "Internet";
@@ -106,11 +120,9 @@ export default {
           if (asn in this.hegemonyValues) {
             if (prev_asn != asn) {
               if (!(prev_asn in graphValues)) {
-                graphValues[prev_asn] = {};
+                graphValues[prev_asn] = this.newCounter();
               }
               graphValues[prev_asn][asn] += 1;
-              // Keep track of unmeasured hegemony
-              // consumedHege[asn][prev_asn] = this.hegemonyValues[prev_asn];
             }
             prev_asn = asn;
           }
@@ -120,24 +132,64 @@ export default {
         })
       })
       console.log(graphValues);
-      
 
-      this.graph = new Graph({
+
+      // adding Internet node to hegemonyValues
+      this.hegemonyValues['Internet'] = { asn: "Internet", name: "Internet", hege: 1.0 };
+
+      Object.keys(this.hegemonyValues).forEach(asn => trace.nodes.push({
+        key: 'n-' + asn,
+        attributes: {
+          x: Math.random(),
+          y: Math.random(),
+          label: asn,
+          size: 12,
+          color: 'green',
+        },
+      }))
+
+      Object.keys(graphValues).forEach(asn => {
+        Object.keys(graphValues[asn]).forEach(source => {
+          trace.edges.push({
+            key: 'e' + source + '-' + asn,
+            source: 'n-' + source,
+            target: 'n-' + asn,
+            attributes: {
+              color: 'blue',
+              type: 'arrow',
+              size: 2,
+            }
+          })
+        })
+      })
+
+      console.log(trace);
+      let graph = new Graph({
         multi: true,
         allowSelfLoops: true,
         type: "directed"
       });
-      const rendrer = new Sigma(this.graph, container, {
+      graph.import(trace);
+      const container = this.$refs.graphHolder;
+      var s = new Sigma(graph, container, {
         settings: {
+          minEdgeSize: 1,
+          maxEdgeSize: 5,
+          minNodeSize: 15,
+          maxNodeSize: 20,
           minArrowSize: 10,
         }
+      }
+      );
+      circular.assign(graph);
+      const positions = forceLayout(graph, {
+        maxIterations: 50,
+        settings: {
+          gravity: 10
+        }
       });
-      // adding the main node Internet.
-      // this.graph.addNode('Internet', {
-      //   size: 15, label: 'Internet',color:'green',
-      // })
-      random.assign(this.graph);
-      rendrer.refresh();
+      forceLayout.assign(graph);
+      s.refresh();
     },
   },
 };
@@ -197,3 +249,6 @@ span {
   height: 32rem;
 }
 </style>
+
+
+
