@@ -23,8 +23,11 @@
           and for date:
           <span>{{ date }}</span>
         </p>
+        <div class="node-edge-info" ref="nodeEdgeInfoContainer"></div>
         <!-- this div will be used to plot graph -->
-        <div id="graph-holder" ref="graphHolder"></div>
+        <div id="graph-holder" ref="graphHolder">
+
+        </div>
       </div>
 
     </div>
@@ -50,7 +53,6 @@ export default {
     return {
       date: new Date().toISOString().split('T')[0],
       asNumber: "",
-      graph: Graph,
       hegemonyValues: {},
       bgpstateValues: [],
       loading: false,
@@ -101,6 +103,37 @@ export default {
       let emptyObj = {};
       return new Proxy(emptyObj, handler);
     },
+
+    nodeEdgeInfoTemplate(resource) {
+      return `        
+        <p>As Number: <span>${this.hegemonyValues[resource]['asn']}</span></p>
+        <p>As Name: <span> ${this.hegemonyValues[resource]['name']} </span></p>
+        <p>Hegemony Value: <span> ${this.hegemonyValues[resource]['hege']} </span></p>
+      `
+    },
+
+    displayInfo(resourcekey) {
+      this.$refs.nodeEdgeInfoContainer.innerHTML = "";
+      if (resourcekey.search('n') === 0) {
+        let node = resourcekey.replace('n-', '');
+        this.$refs.nodeEdgeInfoContainer.innerHTML = `<h5>Node Information:</h5>` + this.nodeEdgeInfoTemplate(node);
+      }
+      if (resourcekey.search('e') === 0) {
+        let source = resourcekey.replace('e', '').split('-')[0];
+        let target = resourcekey.replace('e', '').split('-')[1];
+        console.log(source, " ", target);
+        this.$refs.nodeEdgeInfoContainer.innerHTML = `
+        <h4>Edge Information:</h4>
+        <h5>Source As</h5>
+        ${this.nodeEdgeInfoTemplate(source)}
+        <br>
+        <h5>Target As</h5>
+        ${this.nodeEdgeInfoTemplate(target)}
+        <h5>Netwok Delay Information </h5>
+        `
+      }
+    },
+
 
     plotGraph() {
       let graphValues = {};
@@ -215,7 +248,6 @@ export default {
         },
       });
 
-
       // edge events and functions
       renderer.on("enterEdge", ({ edge }) => {
         graph.setEdgeAttribute(edge, 'label', 'network delay for ' + edge);
@@ -224,24 +256,27 @@ export default {
       });
       renderer.on("leaveEdge", ({ edge }) => {
         graph.setEdgeAttribute(edge, 'label', '');
-        hoveredEdge = null;
+        hoveredEdge = edge;
         renderer.refresh();
       });
       renderer.on("downEdge", ({ edge }) => {
-        console.log(edge, "downEdge event");        
-        hoveredEdge = null;
+        console.log(edge, "downEdge event");
+        this.displayInfo(edge);
+        hoveredEdge = edge;
         renderer.refresh();
       });
 
       // node events and functions
       renderer.on("enterNode", ({ node }) => {
-        console.log(node, "enterNode event");  
-        graph.updateNodeAttribute(node,'label',n => n+" AS name");         
+        graph.updateNodeAttribute(node, 'label', n => n + " AS name");
         renderer.refresh();
       });
       renderer.on("leaveNode", ({ node }) => {
-        console.log(node, "enterNode event");  
-        graph.setNodeAttribute(node,'label',node.replace('n-',''));       
+        graph.setNodeAttribute(node, 'label', node.replace('n-', ''));
+        renderer.refresh();
+      });
+      renderer.on("downNode", ({ node }) => {
+        this.displayInfo(node);
         renderer.refresh();
       });
 
@@ -259,8 +294,6 @@ export default {
       ];
       const edgeEvents = ["downEdge", "clickEdge", "rightClickEdge", "doubleClickEdge", "wheelEdge"];
       const stageEvents = ["downStage", "clickStage", "doubleClickStage", "wheelStage"];
-
-
 
       this.loading = false;
     },
@@ -307,6 +340,7 @@ button {
 }
 
 .graph-container {
+  position: relative;
   background-color: beige;
   color: black;
   margin-top: .5rem;
@@ -321,6 +355,22 @@ span {
 #graph-holder {
   height: 32rem;
 }
+
+.node-edge-info {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: bisque;
+  opacity: .5;
+  min-height: 5rem;
+  width: 20rem;  
+}
+.node-edge-info p, .node-edge-info span{
+  font-size: .5rem;
+  font-weight: lighter;
+  color: black;
+}
+
 </style>
 
 
