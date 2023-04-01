@@ -12,7 +12,7 @@
           <label for="asn">select date: </label>
           <input type="date" v-model="date" />
         </div>
-        <button type="submit">plot</button>
+        <button v-if="!loading" type="submit">plot</button>
       </form>
 
       <!-- graph component -->
@@ -23,7 +23,9 @@
           <span>{{ date }}</span>
         </p>
         <!-- this div will be used to plot graph -->
-        <div id="graph-holder" ref="graphHolder"></div>
+        <div id="graph-holder" ref="graphHolder">
+          <h3 v-if="loading">loading...</h3>
+        </div>
       </div>
 
     </div>
@@ -35,11 +37,10 @@ import axios from 'axios';
 import Sigma from "sigma";
 import Graph from "graphology";
 import { circular, random } from 'graphology-layout';
-import forceLayout from 'graphology-layout-force';
+
 
 const HEGE_BASE_URL = "https://ihr.iijlab.net/ihr/api/hegemony";
 const BGPLAY_BASE_URL = "https://stat.ripe.net/data/bgplay/data.json";
-const BGPSTATE_BASE_URL = "https://stat.ripe.net/data/bgp-state/data.json";
 
 
 export default {
@@ -53,10 +54,12 @@ export default {
       graph: Graph,
       hegemonyValues: {},
       bgpstateValues: [],
+      loading: false,
     }
   },
   methods: {
     async handleSubmit() {
+      this.loading = true;
       console.log("values from form: ", this.asNumber, " --- ", this.date);
       if (this.asNumber === '0' || this.asNumber === '') return;
       console.log("calling api using axios...");
@@ -88,12 +91,7 @@ export default {
       })
       this.bgpstateValues = bgp_res.data.data.initial_state;
     },
-    scaleNodeSize(hege, nodeminSize, nodemaxSize) {
-      const hegeValue = Math.floor(hege * 100);
-      if (hegeValue < nodeminSize) return nodeminSize;
-      else if (hegeValue > nodemaxSize) return nodemaxSize;
-      else return Math.floor(hege * 100);
-    },
+
 
     newCounter() {
       let handler = {
@@ -106,14 +104,11 @@ export default {
     },
 
     plotGraph() {
-
       let graphValues = {};
       let trace = {
         nodes: [],
         edges: [],
       }
-
-
       this.bgpstateValues.forEach(route => {
         let prev_asn = "Internet";
         route.path.forEach(asn => {
@@ -137,16 +132,44 @@ export default {
       // adding Internet node to hegemonyValues
       this.hegemonyValues['Internet'] = { asn: "Internet", name: "Internet", hege: 1.0 };
 
-      Object.keys(this.hegemonyValues).forEach(asn => trace.nodes.push({
-        key: 'n-' + asn,
-        attributes: {
-          x: Math.random(),
-          y: Math.random(),
-          label: asn,
-          size: 12,
-          color: 'green',
-        },
-      }))
+      Object.keys(this.hegemonyValues).forEach(asn => {
+        if (asn === this.asNumber) {
+          trace.nodes.push({
+            key: 'n-' + asn,
+            attributes: {
+              x: Math.random(),
+              y: Math.random(),
+              label: asn,
+              size: 12,
+              color: 'blue',
+            },
+          })
+        }
+        else if (asn === "Internet") {
+          trace.nodes.push({
+            key: 'n-' + asn,
+            attributes: {
+              x: Math.random(),
+              y: Math.random(),
+              label: asn,
+              size: 12,
+              color: 'green',
+            },
+          })
+        }
+        else {
+          trace.nodes.push({
+            key: 'n-' + asn,
+            attributes: {
+              x: Math.random(),
+              y: Math.random(),
+              label: asn,
+              size: 12,
+              color: 'gray',
+            },
+          })
+        }
+      })
 
       Object.keys(graphValues).forEach(asn => {
         Object.keys(graphValues[asn]).forEach(source => {
@@ -155,41 +178,94 @@ export default {
             source: 'n-' + source,
             target: 'n-' + asn,
             attributes: {
-              color: 'blue',
+              color: '',
               type: 'arrow',
               size: 2,
             }
           })
         })
       })
-
       console.log(trace);
+
+      // creating the graph object using Graph from graphology
       let graph = new Graph({
         multi: true,
         allowSelfLoops: true,
         type: "directed"
-      });
+      })
+      // setting the graph from the trace data
       graph.import(trace);
+      random.assign(graph);
       const container = this.$refs.graphHolder;
-      var s = new Sigma(graph, container, {
-        settings: {
-          minEdgeSize: 1,
-          maxEdgeSize: 5,
-          minNodeSize: 15,
-          maxNodeSize: 20,
-          minArrowSize: 10,
-        }
-      }
-      );
-      circular.assign(graph);
-      const positions = forceLayout(graph, {
-        maxIterations: 50,
-        settings: {
-          gravity: 10
-        }
+      let hoveredEdge = null;
+
+      // getting the Sigma js Rendrer
+      var renderer = new Sigma(graph, container, {
+        allowInvalidContainer: true,
+        hideEdgesOnMove: true,
+        edgeLabelSize: 12,
+        minArrowSize: 10,
+        renderEdgeLabels: true,
+        enableEdgeClickEvents: true,
+        enableEdgeWheelEvents: true,
+        enableEdgeHoverEvents: "debounce",
+        edgeReducer(edge, data) {
+          const res = { ...data };
+          if (edge === hoveredEdge) res.color = "#cc0000";
+          return res;
+        },
       });
-      forceLayout.assign(graph);
-      s.refresh();
+
+
+      // edge events and functions
+      renderer.on("enterEdge", ({ edge }) => {
+        graph.setEdgeAttribute(edge, 'label', 'network delay for ' + edge);
+        hoveredEdge = edge;
+        renderer.refresh();
+      });
+      renderer.on("leaveEdge", ({ edge }) => {
+        graph.setEdgeAttribute(edge, 'label', '');
+        hoveredEdge = null;
+        renderer.refresh();
+      });
+      renderer.on("downEdge", ({ edge }) => {
+        console.log(edge, "downEdge event");        
+        hoveredEdge = null;
+        renderer.refresh();
+      });
+
+      // node events and functions
+      renderer.on("enterNode", ({ node }) => {
+        console.log(node, "enterNode event");  
+        graph.updateNodeAttribute(node,'label',n => n+" AS name"); 
+        hoveredEdge = null;
+        renderer.refresh();
+      });
+      renderer.on("leaveNode", ({ node }) => {
+        console.log(node, "enterNode event");  
+        graph.setNodeAttribute(node,'label',node.replace('n','')); 
+        hoveredEdge = null;
+        renderer.refresh();
+      });
+
+
+
+      // All the events from Sigma js
+      const nodeEvents = [
+        "enterNode",
+        "leaveNode",
+        "downNode",
+        "clickNode",
+        "rightClickNode",
+        "doubleClickNode",
+        "wheelNode",
+      ];
+      const edgeEvents = ["downEdge", "clickEdge", "rightClickEdge", "doubleClickEdge", "wheelEdge"];
+      const stageEvents = ["downStage", "clickStage", "doubleClickStage", "wheelStage"];
+
+
+
+      this.loading = false;
     },
   },
 };
