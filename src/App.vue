@@ -23,7 +23,9 @@
           and for date:
           <span>{{ date }}</span>
         </p>
-        <div class="node-edge-info" ref="nodeEdgeInfoContainer"></div>
+        <div class="node-edge-info" ref="nodeEdgeInfoContainer">
+          <p class="error-msg-box"  v-for="err in errors">{{ err }}</p>
+        </div>
         <!-- this div will be used to plot graph -->
         <div id="graph-holder" ref="graphHolder">
 
@@ -44,6 +46,8 @@ import { circular, random } from 'graphology-layout';
 const HEGE_BASE_URL = "https://ihr.iijlab.net/ihr/api/hegemony";
 const BGPLAY_BASE_URL = "https://stat.ripe.net/data/bgplay/data.json";
 
+// network request timeout
+const timeout = 10000;
 
 export default {
   name: "App",
@@ -56,6 +60,7 @@ export default {
       hegemonyValues: {},
       bgpstateValues: [],
       loading: false,
+      errors: [],
     }
   },
   methods: {
@@ -70,27 +75,39 @@ export default {
     },
     async loadHegemonyData() {
       let timestamp = new Date(this.date).toISOString();
-      const hege_res = await axios.get(HEGE_BASE_URL, {
-        params: {
-          originasn: this.asNumber,
-          timebin: timestamp,
-        }
-      })
-      hege_res.data.results.forEach(result => {
-        this.hegemonyValues[result.asn] = { asn: result.asn, name: result.asn_name, hege: result.hege };
-      })
-      console.log(this.hegemonyValues);
+      try {
+        const hege_res = await axios.get(HEGE_BASE_URL, {
+          params: {
+            originasn: this.asNumber,
+            timebin: timestamp,
+          },
+          timeout: timeout,
+        })
+        hege_res.data.results.forEach(result => {
+          this.hegemonyValues[result.asn] = { asn: result.asn, name: result.asn_name, hege: result.hege };
+        })
+        console.log(this.hegemonyValues);
+      } catch (err) {
+        console.log(err.message, err.code);
+        this.errors.push(err.message);
+      }
     },
     async loadBgpData() {
       let timestamp = new Date(this.date).toISOString();
       // for bgp values using bgp state api
-      const bgp_res = await axios.get(BGPLAY_BASE_URL, {
-        params: {
-          resource: this.asNumber,
-          starttime: timestamp,
-        }
-      })
-      this.bgpstateValues = bgp_res.data.data.initial_state;
+      try {
+        const bgp_res = await axios.get(BGPLAY_BASE_URL, {
+          params: {
+            resource: this.asNumber,
+            starttime: timestamp,
+          },
+          timeout: timeout,
+        })
+        this.bgpstateValues = bgp_res.data.data.initial_state;
+      } catch (err) {
+        console.log(err.message, err.code);
+        this.errors.push(err.message);
+      }
     },
 
 
@@ -268,7 +285,8 @@ export default {
 
       // node events and functions
       renderer.on("enterNode", ({ node }) => {
-        graph.updateNodeAttribute(node, 'label', n => n + " AS name");
+        let asn = node.replace('n-','');
+        graph.updateNodeAttribute(node, 'label', n => n + " " + this.hegemonyValues[asn]['name']);
         renderer.refresh();
       });
       renderer.on("leaveNode", ({ node }) => {
@@ -362,15 +380,31 @@ span {
   right: 0;
   background-color: bisque;
   opacity: .5;
-  min-height: 5rem;
-  width: 20rem;  
-}
-.node-edge-info p, .node-edge-info span{
-  font-size: .5rem;
-  font-weight: lighter;
-  color: black;
+  height: 100%;
+  width: 15rem;
 }
 
+.node-edge-info p,
+.node-edge-info span{
+  font-size: x-small;
+  text-decoration: underline;
+}
+
+.node-edge-info span {
+  font-weight: bold;
+  text-decoration: none;
+  font-family:  monospace;
+  background-color: cornflowerblue;
+}
+#error-msg-box{
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  height: 2rem;
+  min-width: 15rem;
+  color: red;
+  opacity:1;
+}
 </style>
 
 
