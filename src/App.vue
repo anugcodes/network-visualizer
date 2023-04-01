@@ -13,6 +13,7 @@
           <input type="date" v-model="date" />
         </div>
         <button v-if="!loading" type="submit">plot</button>
+        <p v-if="loading">loading...</p>
       </form>
 
       <!-- graph component -->
@@ -23,9 +24,7 @@
           <span>{{ date }}</span>
         </p>
         <!-- this div will be used to plot graph -->
-        <div id="graph-holder" ref="graphHolder">
-          <h3 v-if="loading">loading...</h3>
-        </div>
+        <div id="graph-holder" ref="graphHolder"></div>
       </div>
 
     </div>
@@ -237,14 +236,12 @@ export default {
       // node events and functions
       renderer.on("enterNode", ({ node }) => {
         console.log(node, "enterNode event");  
-        graph.updateNodeAttribute(node,'label',n => n+" AS name"); 
-        hoveredEdge = null;
+        graph.updateNodeAttribute(node,'label',n => n+" AS name");         
         renderer.refresh();
       });
       renderer.on("leaveNode", ({ node }) => {
         console.log(node, "enterNode event");  
-        graph.setNodeAttribute(node,'label',node.replace('n','')); 
-        hoveredEdge = null;
+        graph.setNodeAttribute(node,'label',node.replace('n-',''));       
         renderer.refresh();
       });
 
