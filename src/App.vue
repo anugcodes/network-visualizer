@@ -24,7 +24,7 @@
           <span>{{ date }}</span>
         </p>
         <div class="node-edge-info" ref="nodeEdgeInfoContainer">
-          <div class="error-msg-box"  v-for="err in errors">{{ err }}</div>
+          <div class="error-msg-box" v-for="err in errors">{{ err }}</div>
         </div>
         <!-- this div will be used to plot graph -->
         <div id="graph-holder" ref="graphHolder">
@@ -158,6 +158,11 @@ export default {
         nodes: [],
         edges: [],
       }
+      let graph = new Graph({
+        multi: true,
+        allowSelfLoops: true,
+        type: "directed"
+      })
       this.bgpstateValues.forEach(route => {
         let prev_asn = "Internet";
         route.path.forEach(asn => {
@@ -183,68 +188,95 @@ export default {
 
       Object.keys(this.hegemonyValues).forEach(asn => {
         if (asn === this.asNumber) {
-          trace.nodes.push({
-            key: 'n-' + asn,
-            attributes: {
-              x: Math.random(),
-              y: Math.random(),
-              label: asn,
-              size: 12,
-              color: 'blue',
-            },
+          // trace.nodes.push({
+          //   key: 'n-' + asn,
+          //   attributes: {
+          //     x: Math.random(),
+          //     y: Math.random(),
+          //     label: asn,
+          //     size: 12,
+          //     color: 'blue',
+          //   },
+          // })
+          graph.addNode('n-' + asn, {
+            x: Math.random(),
+            y: Math.random(),
+            label: asn,
+            size: 12,
+            color: 'blue',
           })
         }
         else if (asn === "Internet") {
-          trace.nodes.push({
-            key: 'n-' + asn,
-            attributes: {
-              x: Math.random(),
-              y: Math.random(),
-              label: asn,
-              size: 12,
-              color: 'green',
-            },
+          // trace.nodes.push({
+          //   key: 'n-' + asn,
+          //   attributes: {
+          //     x: Math.random(),
+          //     y: Math.random(),
+          //     label: asn,
+          //     size: 12,
+          //     color: 'green',
+          //   },
+          // })
+          graph.addNode('n-' + asn, {
+            x: Math.random(),
+            y: Math.random(),
+            label: asn,
+            size: 12,
+            color: 'green',
           })
         }
         else {
-          trace.nodes.push({
-            key: 'n-' + asn,
-            attributes: {
-              x: Math.random(),
-              y: Math.random(),
-              label: asn,
-              size: 12,
-              color: 'gray',
-            },
+          // trace.nodes.push({
+          //   key: 'n-' + asn,
+          //   attributes: {
+          //     x: Math.random(),
+          //     y: Math.random(),
+          //     label: asn,
+          //     size: 12,
+          //     color: 'gray',
+          //   },
+          // })
+          graph.addNode('n-' + asn, {
+            x: Math.random(),
+            y: Math.random(),
+            label: asn,
+            size: 12,
+            color: 'gray',
           })
         }
       })
 
       Object.keys(graphValues).forEach(asn => {
         Object.keys(graphValues[asn]).forEach(source => {
-          trace.edges.push({
-            key: 'e' + source + '-' + asn,
-            source: 'n-' + source,
-            target: 'n-' + asn,
-            attributes: {
-              color: '',
-              type: 'arrow',
-              size: 2,
-            }
+          // trace.edges.push({
+          //   key: 'e' + source + '-' + asn,
+          //   source: 'n-' + source,
+          //   target: 'n-' + asn,
+          //   attributes: {
+          //     color: '',
+          //     type: 'arrow',
+          //     weight: 2,
+          //   }
+          // })
+          graph.addEdgeWithKey('e' + source + '-' + asn, 'n-'+source,'n-'+asn, {
+            color: '',
+            type: 'arrow',
+            size: 5,
           })
         })
       })
-      console.log(trace);
+      // console.log(trace);
 
       // creating the graph object using Graph from graphology
-      let graph = new Graph({
-        multi: true,
-        allowSelfLoops: true,
-        type: "directed"
-      })
+      // let graph = new Graph({
+      //   multi: true,
+      //   allowSelfLoops: true,
+      //   type: "directed"
+      // })
       // setting the graph from the trace data
-      graph.import(trace);
-      random.assign(graph);
+      // graph.import(trace);
+
+      // random.assign(graph);
       const container = this.$refs.graphHolder;
       let hoveredEdge = null;
 
@@ -253,7 +285,7 @@ export default {
         allowInvalidContainer: true,
         hideEdgesOnMove: true,
         edgeLabelSize: 12,
-        minArrowSize: 10,
+        minArrowSize: 5,
         renderEdgeLabels: true,
         enableEdgeClickEvents: true,
         enableEdgeWheelEvents: true,
@@ -285,7 +317,7 @@ export default {
 
       // node events and functions
       renderer.on("enterNode", ({ node }) => {
-        let asn = node.replace('n-','');
+        let asn = node.replace('n-', '');
         graph.updateNodeAttribute(node, 'label', n => n + " " + this.hegemonyValues[asn]['name']);
         renderer.refresh();
       });
@@ -315,6 +347,8 @@ export default {
 
       this.loading = false;
     },
+
+
   },
 };
 </script>
@@ -349,7 +383,7 @@ form {
   flex-direction: column;
 }
 
-.form-control > input {
+.form-control>input {
   width: 8rem;
 }
 
@@ -384,14 +418,14 @@ form button {
   width: 15rem;
 }
 
-#error-msg-box{
+#error-msg-box {
   position: absolute;
   right: 0;
   bottom: 0;
   height: 2rem;
   min-width: 15rem;
   color: red;
-  opacity:1;
+  opacity: 1;
 }
 </style>
 
