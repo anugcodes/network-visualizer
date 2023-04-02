@@ -24,7 +24,7 @@
           <span>{{ date }}</span>
         </p>
         <div class="node-edge-info" ref="nodeEdgeInfoContainer">
-          <p class="error-msg-box"  v-for="err in errors">{{ err }}</p>
+          <div class="error-msg-box"  v-for="err in errors">{{ err }}</div>
         </div>
         <!-- this div will be used to plot graph -->
         <div id="graph-holder" ref="graphHolder">
@@ -349,11 +349,11 @@ form {
   flex-direction: column;
 }
 
-input {
+.form-control > input {
   width: 8rem;
 }
 
-button {
+form button {
   padding: 0 .5rem;
 }
 
@@ -365,7 +365,7 @@ button {
   padding: .25rem;
 }
 
-span {
+.graph-container p span {
   font-style: italic;
   font-weight: bold;
 }
@@ -384,18 +384,6 @@ span {
   width: 15rem;
 }
 
-.node-edge-info p,
-.node-edge-info span{
-  font-size: x-small;
-  text-decoration: underline;
-}
-
-.node-edge-info span {
-  font-weight: bold;
-  text-decoration: none;
-  font-family:  monospace;
-  background-color: cornflowerblue;
-}
 #error-msg-box{
   position: absolute;
   right: 0;
