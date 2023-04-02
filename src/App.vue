@@ -14,6 +14,11 @@
         </div>
         <button v-if="!loading" type="submit">plot</button>
         <p v-if="loading">loading...</p>
+        <div class="info">
+          <p>hover over the node/edges to display node/edge name or </p>
+          <p>select the edge to get more info about the source and target nodes</p>
+          <p>select/click a node to get more information about that node.</p>
+        </div>
       </form>
 
       <!-- graph component -->
@@ -23,15 +28,16 @@
           and for date:
           <span>{{ date }}</span>
         </p>
-        <div class="node-edge-info" ref="nodeEdgeInfoContainer">
-          <div class="error-msg-box" v-for="err in errors">{{ err }}</div>
-        </div>
+        <div class="node-edge-info" ref="nodeEdgeInfoContainer"></div>
         <!-- this div will be used to plot graph -->
-        <div id="graph-holder" ref="graphHolder">
-
-        </div>
+        <div id="graph-holder" ref="graphHolder"></div>
       </div>
-
+      <div class="note">
+        <h4>Note: </h4>This is simple VueJs component demonstrating how to fetch data from the IHR's Hegemony and bgplay
+        api and plotting the graph after generating all the nodes(AS) and edges/relationships. In this example the
+        hegemony data is fetched only for a timestamp value. and using the bgplay's initial state values relationships are
+        generated.
+      </div>
     </div>
   </div>
 </template>
@@ -60,7 +66,6 @@ export default {
       hegemonyValues: {},
       bgpstateValues: [],
       loading: false,
-      errors: [],
     }
   },
   methods: {
@@ -89,7 +94,6 @@ export default {
         console.log(this.hegemonyValues);
       } catch (err) {
         console.log(err.message, err.code);
-        this.errors.push(err.message);
       }
     },
     async loadBgpData() {
@@ -106,7 +110,6 @@ export default {
         this.bgpstateValues = bgp_res.data.data.initial_state;
       } catch (err) {
         console.log(err.message, err.code);
-        this.errors.push(err.message);
       }
     },
 
@@ -258,10 +261,10 @@ export default {
           //     weight: 2,
           //   }
           // })
-          graph.addEdgeWithKey('e' + source + '-' + asn, 'n-'+source,'n-'+asn, {
+          graph.addEdgeWithKey('e' + source + '-' + asn, 'n-' + source, 'n-' + asn, {
             color: '',
             type: 'arrow',
-            size: 5,
+            size: 4,
           })
         })
       })
@@ -333,17 +336,17 @@ export default {
 
 
       // All the events from Sigma js
-      const nodeEvents = [
-        "enterNode",
-        "leaveNode",
-        "downNode",
-        "clickNode",
-        "rightClickNode",
-        "doubleClickNode",
-        "wheelNode",
-      ];
-      const edgeEvents = ["downEdge", "clickEdge", "rightClickEdge", "doubleClickEdge", "wheelEdge"];
-      const stageEvents = ["downStage", "clickStage", "doubleClickStage", "wheelStage"];
+      // const nodeEvents = [
+      //   "enterNode",
+      //   "leaveNode",
+      //   "downNode",
+      //   "clickNode",
+      //   "rightClickNode",
+      //   "doubleClickNode",
+      //   "wheelNode",
+      // ];
+      // const edgeEvents = ["downEdge", "clickEdge", "rightClickEdge", "doubleClickEdge", "wheelEdge"];
+      // const stageEvents = ["downStage", "clickStage", "doubleClickStage", "wheelStage"];
 
       this.loading = false;
     },
@@ -375,6 +378,7 @@ form {
   display: flex;
   align-items: flex-end;
   padding: .5rem 0;
+  position: relative;
 }
 
 .form-control {
@@ -418,14 +422,22 @@ form button {
   width: 15rem;
 }
 
-#error-msg-box {
+.note {
+  font-size: small;
+}
+
+.info {
+  align-self: flex-end;
   position: absolute;
   right: 0;
-  bottom: 0;
-  height: 2rem;
-  min-width: 15rem;
-  color: red;
-  opacity: 1;
+  top: 0;
+  margin: .5rem;
+}
+
+.info p {
+  font-size: small;
+  font-weight: bold;
+  color: orangered;
 }
 </style>
 
