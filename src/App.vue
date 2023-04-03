@@ -202,8 +202,8 @@ export default {
           //   },
           // })
           graph.addNode('n-' + asn, {
-            x: Math.random(),
-            y: Math.random(),
+            x: 0.0,
+            y: 0.5,
             label: asn,
             size: 12,
             color: 'blue',
@@ -221,8 +221,8 @@ export default {
           //   },
           // })
           graph.addNode('n-' + asn, {
-            x: Math.random(),
-            y: Math.random(),
+            x: 1,
+            y: 0.5,
             label: asn,
             size: 12,
             color: 'green',
@@ -239,9 +239,12 @@ export default {
           //     color: 'gray',
           //   },
           // })
+          let u = 0,v = 0;
+          while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+          while (v === 0) v = Math.random();
           graph.addNode('n-' + asn, {
-            x: Math.random(),
-            y: Math.random(),
+            x: u,
+            y: v,
             label: asn,
             size: 12,
             color: 'gray',
@@ -268,14 +271,6 @@ export default {
           })
         })
       })
-      // console.log(trace);
-
-      // creating the graph object using Graph from graphology
-      // let graph = new Graph({
-      //   multi: true,
-      //   allowSelfLoops: true,
-      //   type: "directed"
-      // })
       // setting the graph from the trace data
       // graph.import(trace);
 
@@ -350,6 +345,31 @@ export default {
 
       this.loading = false;
     },
+
+    calculateAvgHegemony(data) {
+      // data is the Array containing objects for each asn for different timestamps
+      let hegeValues = {};
+      let AvgHegeValues = {};
+      data.forEach(node => {
+        if (!(node.asn in hegeValues)) {
+          hegeValues[node.asn] = {
+            sum: node.hege,
+            count: 1,
+            name: node.asn_name,
+          }
+        } else {
+          hegeValues[node.asn][sum] += node.hege;
+          hegeValues[node.asn][count] += 1;
+        }
+      })
+      Object.keys(hegeValues).forEach(asn => {
+        AvgHegeValues[asn] = {
+          avg_hege: hegeValues[asn]["sum"] / hegeValues[asn]["count"],
+          name: hegeValues[asn]["name"],
+        }
+      })
+      return AvgHegeValues;
+    }
 
 
   },
