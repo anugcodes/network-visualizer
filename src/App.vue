@@ -29,7 +29,6 @@
           <span>{{ date }}</span>
         </p>
         <div class="node-edge-info" ref="nodeEdgeInfoContainer"></div>
-        <!-- this div will be used to plot graph -->
         <div id="graph-holder" ref="graphHolder"></div>
       </div>
       <div class="note">
@@ -46,7 +45,6 @@
 import axios from 'axios';
 import Sigma from "sigma";
 import Graph from "graphology";
-import { circular, random } from 'graphology-layout';
 
 
 const HEGE_BASE_URL = "https://ihr.iijlab.net/ihr/api/hegemony";
@@ -190,36 +188,16 @@ export default {
       this.hegemonyValues['Internet'] = { asn: "Internet", name: "Internet", hege: 1.0 };
 
       Object.keys(this.hegemonyValues).forEach(asn => {
-        if (asn === this.asNumber) {
-          // trace.nodes.push({
-          //   key: 'n-' + asn,
-          //   attributes: {
-          //     x: Math.random(),
-          //     y: Math.random(),
-          //     label: asn,
-          //     size: 12,
-          //     color: 'blue',
-          //   },
-          // })
+        if (asn === this.asNumber) {          
           graph.addNode('n-' + asn, {
             x: 0.0,
             y: 0.5,
             label: asn,
             size: 12,
-            color: 'blue',
+            color: 'blue', 
           })
         }
-        else if (asn === "Internet") {
-          // trace.nodes.push({
-          //   key: 'n-' + asn,
-          //   attributes: {
-          //     x: Math.random(),
-          //     y: Math.random(),
-          //     label: asn,
-          //     size: 12,
-          //     color: 'green',
-          //   },
-          // })
+        else if (asn === "Internet") {          
           graph.addNode('n-' + asn, {
             x: 1,
             y: 0.5,
@@ -228,19 +206,9 @@ export default {
             color: 'green',
           })
         }
-        else {
-          // trace.nodes.push({
-          //   key: 'n-' + asn,
-          //   attributes: {
-          //     x: Math.random(),
-          //     y: Math.random(),
-          //     label: asn,
-          //     size: 12,
-          //     color: 'gray',
-          //   },
-          // })
+        else {          
           let u = 0,v = 0;
-          while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+          while (u <0.1 || u > 0.9) u = Math.random();
           while (v === 0) v = Math.random();
           graph.addNode('n-' + asn, {
             x: u,
@@ -254,16 +222,7 @@ export default {
 
       Object.keys(graphValues).forEach(asn => {
         Object.keys(graphValues[asn]).forEach(source => {
-          // trace.edges.push({
-          //   key: 'e' + source + '-' + asn,
-          //   source: 'n-' + source,
-          //   target: 'n-' + asn,
-          //   attributes: {
-          //     color: '',
-          //     type: 'arrow',
-          //     weight: 2,
-          //   }
-          // })
+          let total_count =        
           graph.addEdgeWithKey('e' + source + '-' + asn, 'n-' + source, 'n-' + asn, {
             color: '',
             type: 'arrow',
@@ -271,23 +230,22 @@ export default {
           })
         })
       })
-      // setting the graph from the trace data
-      // graph.import(trace);
 
-      // random.assign(graph);
       const container = this.$refs.graphHolder;
       let hoveredEdge = null;
 
       // getting the Sigma js Rendrer
       var renderer = new Sigma(graph, container, {
-        allowInvalidContainer: true,
+        // sigmajs settings 
+        allowInvalidContainer: false,
         hideEdgesOnMove: true,
         edgeLabelSize: 12,
-        minArrowSize: 5,
+        minArrowSize: 10,
         renderEdgeLabels: true,
         enableEdgeClickEvents: true,
         enableEdgeWheelEvents: true,
         enableEdgeHoverEvents: "debounce",
+
         edgeReducer(edge, data) {
           const res = { ...data };
           if (edge === hoveredEdge) res.color = "#cc0000";
@@ -382,9 +340,12 @@ export default {
   padding: .5rem;
 }
 
-@media screen and (max-width: 800px) {
+@media screen and (max-width: 600px) {
   .container {
     display: block;
+  }
+  .info{
+    display: none;
   }
 }
 
@@ -455,9 +416,9 @@ form button {
 }
 
 .info p {
-  font-size: small;
-  font-weight: bold;
-  color: orangered;
+  font-size: x-small;
+  font-weight: 500;
+  color: darkslateblue;
 }
 </style>
 
