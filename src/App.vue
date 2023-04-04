@@ -155,15 +155,17 @@ export default {
 
     plotGraph() {
       let graphValues = {};
-      let trace = {
-        nodes: [],
-        edges: [],
-      }
+      let consumedHege = {};
       let graph = new Graph({
         multi: true,
         allowSelfLoops: true,
         type: "directed"
       })
+
+      // adding Internet node to hegemonyValues
+      this.hegemonyValues['Internet'] = { asn: "Internet", name: "Internet", hege: 1.0 };
+      Object.keys(this.hegemonyValues).forEach(asn => consumedHege[asn] = {});
+
       this.bgpstateValues.forEach(route => {
         let prev_asn = "Internet";
         route.path.forEach(asn => {
@@ -173,6 +175,7 @@ export default {
                 graphValues[prev_asn] = this.newCounter();
               }
               graphValues[prev_asn][asn] += 1;
+              consumedHege[asn][prev_asn] = this.hegemonyValues[prev_asn]['hege']
             }
             prev_asn = asn;
           }
@@ -184,20 +187,19 @@ export default {
       console.log(graphValues);
 
 
-      // adding Internet node to hegemonyValues
-      this.hegemonyValues['Internet'] = { asn: "Internet", name: "Internet", hege: 1.0 };
+      
 
       Object.keys(this.hegemonyValues).forEach(asn => {
-        if (asn === this.asNumber) {          
+        if (asn === this.asNumber) {
           graph.addNode('n-' + asn, {
             x: 0.0,
             y: 0.5,
             label: asn,
             size: 12,
-            color: 'blue', 
+            color: 'blue',
           })
         }
-        else if (asn === "Internet") {          
+        else if (asn === "Internet") {
           graph.addNode('n-' + asn, {
             x: 1,
             y: 0.5,
@@ -206,9 +208,9 @@ export default {
             color: 'green',
           })
         }
-        else {          
-          let u = 0,v = 0;
-          while (u <0.1 || u > 0.9) u = Math.random();
+        else {
+          let u = 0, v = 0;
+          while (u < 0.1 || u > 0.9) u = Math.random();
           while (v === 0) v = Math.random();
           graph.addNode('n-' + asn, {
             x: u,
@@ -220,13 +222,25 @@ export default {
         }
       })
 
-      Object.keys(graphValues).forEach(asn => {
-        Object.keys(graphValues[asn]).forEach(source => {
-          let total_count =        
-          graph.addEdgeWithKey('e' + source + '-' + asn, 'n-' + source, 'n-' + asn, {
-            color: '',
+      Object.keys(graphValues).forEach(target => {
+        let total_count = Object.values(graphValues[target]).reduce((a, b) => a + b, 0);        
+        Object.keys(graphValues[target]).forEach(source => {
+          let weight = this.hegemonyValues[target]['hege'] * (graphValues[target][source] / total_count);
+          // calculate weight if the target node is rest of Internet.
+          if (target == 'Internet') {
+            var sum = 0;
+            for (const [asn, hege] of Object.entries(consumedHege[source])) if (asn != target) sum += hege;
+            // console.log(sum)
+            weight = Math.abs(this.hegemonyValues[source]['hege'] - sum);            
+          }
+          // constrain the thickness of edges.
+          console.log(weight*10);
+          if( weight*10 < 1) weight = 1;
+          else weight = weight*10;     
+          // finally adding the edges to the graph object. 
+          graph.addEdgeWithKey('e' + source + '-' + target, 'n-' + source, 'n-' + target, {           
             type: 'arrow',
-            size: 4,
+            size: weight,
           })
         })
       })
@@ -237,7 +251,7 @@ export default {
       // getting the Sigma js Rendrer
       var renderer = new Sigma(graph, container, {
         // sigmajs settings 
-        allowInvalidContainer: false,
+        allowInvalidContainer: true,
         hideEdgesOnMove: true,
         edgeLabelSize: 12,
         minArrowSize: 10,
@@ -255,7 +269,7 @@ export default {
 
       // edge events and functions
       renderer.on("enterEdge", ({ edge }) => {
-        graph.setEdgeAttribute(edge, 'label', 'network delay for ' + edge);
+        graph.setEdgeAttribute(edge, 'label', 'network delay for ' + graph.getEdgeAttribute(edge, 'size'));
         hoveredEdge = edge;
         renderer.refresh();
       });
@@ -344,7 +358,8 @@ export default {
   .container {
     display: block;
   }
-  .info{
+
+  .info {
     display: none;
   }
 }
