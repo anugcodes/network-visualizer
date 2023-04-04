@@ -236,7 +236,7 @@ export default {
           // constrain the thickness of edges.
           console.log(weight*10);
           if( weight*10 < 1) weight = 1;
-          else weight = weight*10;     
+          else weight = weight*10;
           // finally adding the edges to the graph object. 
           graph.addEdgeWithKey('e' + source + '-' + target, 'n-' + source, 'n-' + target, {           
             type: 'arrow',
@@ -269,7 +269,7 @@ export default {
 
       // edge events and functions
       renderer.on("enterEdge", ({ edge }) => {
-        graph.setEdgeAttribute(edge, 'label', 'network delay for ' + graph.getEdgeAttribute(edge, 'size'));
+        graph.setEdgeAttribute(edge, 'label', "hegemony value: " +  graph.getEdgeAttribute(edge, 'size'));
         hoveredEdge = edge;
         renderer.refresh();
       });
